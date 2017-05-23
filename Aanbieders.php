@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: AnbApiClient
-Plugin URI: https://github.com/mrimran/WpAutoload
+Plugin URI: https://github.com/econtract/ApiClient
 Description: Aanbieders API Client Plugin for Wordpress.
 Version: 1.0.0
 Author: Imran Zahoor
