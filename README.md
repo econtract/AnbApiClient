@@ -29,3 +29,5 @@ $params = array('sg' => 'consumer', 'lang' => 'nl','cat' => 'internet');
 $compare_result = $test->compare($params, false);
 print_r($compare);
 ```
+
+For Plain PHP ApiClient visit this link http://apihelp.econtract.be/php-client-library
