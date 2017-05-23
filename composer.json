@@ -1,0 +1,23 @@
+{
+  "name": "anb/api-client",
+  "description": "Aanbieders API Client Plugin for Wordpress",
+  "keywords": ["wordpress", "plugin", "api-client"],
+  "homepage": "https://github.com/econtract/ApiClient",
+  "license": "GPL3",
+  "authors": [
+    {
+      "name": "Evert Engelen",
+      "email": "evert@aanbieders.be",
+      "homepage": "http://aanbieders.be/"
+    },
+    {
+      "name": "Imran Zahoor",
+      "email": "imran@zeropoint.it",
+      "homepage": "https://zeropoint.it/"
+    }
+  ],
+  "type": "wordpress-plugin",
+  "require": {
+    "php": ">=5.3.2"
+  }
+}
