@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: AnbApiClient
+Plugin Name: Aanbieders Api Client
 Plugin URI: https://github.com/econtract/ApiClient
 Description: Aanbieders API Client Plugin for Wordpress.
 Version: 1.0.0
