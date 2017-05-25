@@ -1,5 +1,5 @@
 {
-  "name": "anb/api-client",
+  "name": "anb/AnbApiClient",
   "description": "Aanbieders API Client Plugin for Wordpress",
   "keywords": ["wordpress", "plugin", "api-client"],
   "homepage": "https://github.com/econtract/ApiClient",
