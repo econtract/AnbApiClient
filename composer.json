@@ -1,8 +1,8 @@
 {
   "name": "anb/AnbApiClient",
   "description": "Aanbieders API Client Plugin for Wordpress",
-  "keywords": ["wordpress", "plugin", "api-client"],
-  "homepage": "https://github.com/econtract/ApiClient",
+  "keywords": ["wordpress", "plugin", "AnbApiClient"],
+  "homepage": "https://github.com/econtract/AnbApiClient",
   "license": "GPL3",
   "authors": [
     {

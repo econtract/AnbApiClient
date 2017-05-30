@@ -3,7 +3,7 @@
 Plugin Name: Aanbieders Api Client
 Plugin URI: https://github.com/econtract/ApiClient
 Description: Aanbieders API Client Plugin for Wordpress.
-Version: 1.0.0
+Version: 1.0.2
 Author: Imran Zahoor
 Author URI: http://imranzahoor.wordpress.com/
 License: A "Slug" license name e.g. GPL2
