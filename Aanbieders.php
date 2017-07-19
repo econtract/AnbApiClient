@@ -201,6 +201,19 @@ class Aanbieders {
 		
 	}
 
+    /**
+     * Get list of reviews based on given parameters
+     * @param array $params array with parameters for reviews
+     * @return object:
+     */
+    public function getReviews( $params ) {
+
+        $url = $this->host . '/reviews.json';
+
+        return $this->doCall( $url, $params, 'GET' );
+
+    }
+
 	/**
 	 * Magic get function to get the properties
 	 * @throws \Exception ifthe property you try to get is not defined
