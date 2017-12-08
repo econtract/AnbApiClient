@@ -304,6 +304,13 @@ class Aanbieders
 
             // do the request
             $query = http_build_query($parameters, '', '&');
+
+            if($_GET['debug']) {
+                echo "<pre>API URL>>> ";
+                echo $url . '?' . $query;
+                echo "</pre>";
+            }
+
             curl_setopt($curl_handle, CURLOPT_URL, $url . '?' . $query);
         }
 
