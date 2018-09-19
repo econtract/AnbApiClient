@@ -116,7 +116,7 @@ class Aanbieders
      * @return json containing search results
      * @compareId comaprison id to fetch previous compare result
      */
-    public function previousCompare($compareId, $params)
+    public function previousCompare($compareId, $params = [])
     {
 
         $url = $this->host . "/comparison/".$compareId.".json";
