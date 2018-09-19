@@ -111,6 +111,20 @@ class Aanbieders
     }
 
     /**
+     * Get previous search on the basis of comparison id
+     * @params array optional
+     * @return json containing search results
+     * @compareId comaprison id to fetch previous compare result
+     */
+    public function previousCompare($compareId, $params)
+    {
+
+        $url = $this->host . "/comparison/".$compareId.".json";
+
+        return $this->doCall($url, $params, 'GET');
+    }
+
+    /**
      *  Get a list of 1 or more products and related information
      *
      * @param array $params Array of parameters
