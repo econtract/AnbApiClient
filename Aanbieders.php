@@ -124,6 +124,20 @@ class Aanbieders
         return $this->doCall($url, $params, 'GET');
     }
 
+	/**
+	 * Get last updated product DateTime
+	 * @param $params
+	 *
+	 * @return array
+	 */
+	public function getProductsLastUpdated($params)
+	{
+		$url = $this->host . '/products/last_updated.json';
+
+		return $this->doCall($url, $params, 'GET');
+
+	}
+
     /**
      *  Get a list of 1 or more products and related information
      *
