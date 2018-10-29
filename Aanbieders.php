@@ -138,6 +138,23 @@ class Aanbieders
 
 	}
 
+	/**
+	 * Get supplier details
+	 * @param $params
+	 *
+	 * @return array
+	 */
+	public function getSupplierDetail($supplierId, $params = [])
+	{
+		if(!isset($params['lang'])) {
+			$params['lang'] = 'nl';
+		}
+		$url = $this->host . '/suppliers/'.$supplierId.'.json';
+
+		return $this->doCall($url, $params, 'GET');
+
+	}
+
     /**
      *  Get a list of 1 or more products and related information
      *
