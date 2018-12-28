@@ -474,4 +474,9 @@ class Aanbieders
         return (intval($check) == intval(substr($value, 17, 1)));
     }
 
+    function getSalesAgent( $params = array() ){
+        $url = $this->host . '/sales_agent.json';
+        return $this->doCall($url, $params, 'GET');
+    }
+
 }
