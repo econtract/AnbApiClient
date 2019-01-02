@@ -479,4 +479,9 @@ class Aanbieders
         return $this->doCall($url, $params, 'GET');
     }
 
+    function getUsageResults($params = array()){
+        $url = $this->host . "/usages.json";
+        return $this->doCall($url, $params, 'GET');
+    }
+
 }
