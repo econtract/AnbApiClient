@@ -480,8 +480,61 @@ class Aanbieders
     }
 
     function getUsageResults($params = array()){
-        $url = $this->host . "/usages.json";
-        return $this->doCall($url, $params, 'GET');
+        $url = CRM_API_HOST . "/usages";
+        return $this->doCallCRMAPI($url, $params, 'GET');
     }
 
+    private function doCallCRMAPI($url, $parameters = array(), $method = 'POST'){
+        $parameters['crm_api_id'] = CRM_API_ID;
+        $parameters['crm_api_key'] = CRM_API_KEY;
+        $curl_handle = curl_init();
+        curl_setopt($curl_handle, CURLOPT_RETURNTRANSFER, true);
+
+        if ($method == 'POST') {
+            $post_params = '';
+            foreach ($parameters as $key => $value) {
+                if (is_array($value)) {
+                    foreach ($value as $k => $k_val) {
+                        $post_params .= $key . '[' . $k . ']=' . $k_val . '&';
+                    }
+                } else {
+                    $post_params .= $key . '=' . $value . '&';
+                }
+            }
+
+            rtrim($post_params, '&');
+            curl_setopt($curl_handle, CURLOPT_POST, count($parameters));
+            curl_setopt($curl_handle, CURLOPT_POSTFIELDS, $post_params);
+            curl_setopt($curl_handle, CURLOPT_URL, $url);
+        } else if ($method == 'GET') {
+            // do a GET call
+            curl_setopt($curl_handle, CURLOPT_HTTPGET, true);
+            // do the request
+            $query = http_build_query($parameters, '', '&');
+
+            if($_GET['debug']) {
+                echo "<pre>API URL>>> ";
+                echo $url . '?' . $query;
+                echo "</pre>";
+            }
+            curl_setopt($curl_handle, CURLOPT_URL, $url . '?' . $query);
+        }
+        // do request
+        $response = curl_exec($curl_handle);
+        // close
+        curl_close($curl_handle);
+        switch ($this->outputtype) {
+            default:
+            case 'json':
+                return $response;
+                break;
+            case 'object':
+                return json_decode($response);
+                break;
+            case 'array':
+                return $this->object_to_array(json_decode($response));
+                break;
+        }
+        return json_decode($response);
+    }
 }
