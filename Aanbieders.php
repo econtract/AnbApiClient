@@ -71,16 +71,7 @@ class Aanbieders
         }
 
         //check for/create a unique id for tracking purposes
-        if (!headers_sent()) {
-            if (!isset($_COOKIE['abcid'])) {
-                $this->abcid = uniqid();
-            } else {
-                $this->abcid = $_COOKIE['abcid'];
-            }
-        }
-
-        //store cookie for 200 days
-        setcookie('abcid', $this->abcid, time() + 17280000, '/');
+        $this->abcid = uniqid();
     }
 
     /**
