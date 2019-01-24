@@ -470,6 +470,11 @@ class Aanbieders
         return $this->doCall($url, $params, 'GET');
     }
 
+    function checkAvailabilityRPC($params = array()){
+        $url = $this->host . '/products/is_available_at/'.$params['pid'].'.json';
+        return $this->doCall($url, $params, 'GET');
+    }
+
     function getUsageResults($params = array()){
         $url = CRM_API_HOST . "/usages";
         return $this->doCallCRMAPI($url, $params, 'GET');
