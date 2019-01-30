@@ -475,6 +475,12 @@ class Aanbieders
         return $this->doCall($url, $params, 'GET');
     }
 
+    function telecomPbsRpcCall($params = array()){
+        $url = $this->host . '/products/pbs/'.$params['pid'].'.json';
+        unset($params['pid']);
+        return $this->doCall($url, $params, 'GET');
+    }
+
     function getUsageResults($params = array()){
         $url = CRM_API_HOST . "/usages";
         return $this->doCallCRMAPI($url, $params, 'GET');
