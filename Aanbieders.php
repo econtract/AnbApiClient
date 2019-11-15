@@ -482,7 +482,7 @@ class Aanbieders
     }
 
     function getUsageResults($params = array()){
-        $url = CRM_API_HOST . "/usages";
+        $url = CRM_API_HOST . "/api/usages";
         return $this->doCallCRMAPI($url, $params, 'GET');
     }
 
