@@ -293,7 +293,7 @@ class Aanbieders
      * @param string $url Url of the resource
      * @param array $parameters Required and optional parameters for the resource
      * @param string $method The HTTP-method, default is POST
-     * @return array with request response
+     * @return mixed with request response
      */
     private function doCall($url, $parameters = array(), $method = 'POST')
     {
@@ -343,12 +343,6 @@ class Aanbieders
 
             // do the request
             $query = http_build_query($parameters, '', '&');
-
-            if($_GET['debug']) {
-                echo "<pre>API URL>>> ";
-                echo $url . '?' . $query;
-                echo "</pre>";
-            }
 
             curl_setopt($curl_handle, CURLOPT_URL, $url . '?' . $query);
         }
@@ -514,11 +508,6 @@ class Aanbieders
             // do the request
             $query = http_build_query($parameters, '', '&');
 
-            if($_GET['debug']) {
-                echo "<pre>API URL>>> ";
-                echo $url . '?' . $query;
-                echo "</pre>";
-            }
             curl_setopt($curl_handle, CURLOPT_URL, $url . '?' . $query);
         }
         // do request
