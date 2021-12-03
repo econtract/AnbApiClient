@@ -242,6 +242,18 @@ class Aanbieders
     }
 
     /**
+     * Get Supplier ratings
+     * @param int $supplierID
+     * @param array $params
+     * @return array
+     */
+    public function getSupplierRatings($supplierID, $params)
+    {
+        $url = CRM_API_HOST . "/api/suppliers/" . $supplierID . "/rating";
+        return $this->doCallCRMAPI($url, $params, 'GET');
+    }
+
+    /**
      * Magic get function to get the properties
      * @throws \Exception ifthe property you try to get is not defined
      */
