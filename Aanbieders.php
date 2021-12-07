@@ -11,6 +11,7 @@ License: A "Slug" license name e.g. GPL2
 
 namespace AnbApiClient;
 
+use Cake\Core\Configure;
 use Exception;
 
 /**
@@ -45,6 +46,21 @@ class Aanbieders
     private $language;
 
     /**
+     * @var string
+     */
+    private $abcid;
+
+    /**
+     * @var bool
+     */
+    private $log;
+
+    /**
+     * @var string
+     */
+    private $logDirectory;
+
+    /**
      * Constructor: Initializes the instance
      *
      * @param array $config API configuration
@@ -65,6 +81,19 @@ class Aanbieders
         $this->host     = isset($config['host']) ? $config['host'] : 'https://api.econtract.be';
         $this->language = isset($config['language']) ? $config['language'] : 'nl';
         $this->abcid    = uniqid();
+        $this->log      = isset($config['log']) ? $config['log'] : (defined('ANB_API_LOG') && ANB_API_LOG);
+
+        if (isset($config['logDirectory'])) {
+            $this->logDirectory = $config['logDirectory'];
+        } elseif (defined('AB_API_LOG_DIR')) {
+            $this->logDirectory = AB_API_LOG_DIR;
+        } elseif (defined('WP_CONTENT_DIR')) {
+            $this->logDirectory = WP_CONTENT_DIR . '/logs/';
+        }
+
+        if ($this->log && $this->logDirectory !== null && !is_dir($this->logDirectory)) {
+            mkdir($this->logDirectory, 0775, true);
+        }
     }
 
     /**
@@ -275,6 +304,11 @@ class Aanbieders
         curl_setopt($curlHandle, CURLOPT_URL, $url);
 
         $response = curl_exec($curlHandle);
+
+        if ($this->log) {
+            $this->logRequest($url, $method, $parameters, $response);
+        }
+
         // close
         curl_close($curlHandle);
         switch ($this->outputType) {
@@ -288,6 +322,50 @@ class Aanbieders
         }
     }
 
+    /**
+     * @param string       $requestUrl
+     * @param string       $requestType
+     * @param array        $requestData
+     * @param string|false $response
+     */
+    protected function logRequest($requestUrl, $requestType, $requestData, $response)
+    {
+        if ($requestType !== 'GET' && !empty($requestData)) {
+            $message = vsprintf("API call (%s) %s\nRequest body:\n%s\nResponse body:\n %s\n\n", [
+                $requestType,
+                $requestUrl,
+                json_encode($requestData, JSON_PRETTY_PRINT) . "\n",
+                is_string($response) ? json_encode(json_decode($response, true), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) : '',
+            ]);
+        } else {
+            $message = vsprintf("API call (%s) %s\nResponse body:\n %s\n\n", [
+                $requestType,
+                $requestUrl,
+                is_string($response) ? json_encode(json_decode($response, true), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) : '',
+            ]);
+        }
+
+        $this->log($message);
+    }
+
+    /**
+     * @param string $message
+     * @return false|int
+     */
+    protected function log($message)
+    {
+        $fileName = 'anb-api-calls.log';
+        $this->rotateLogFile($fileName);
+
+        $output = sprintf('[%s] %s', date('Y-m-d H:i:s'), $message);
+
+        return file_put_contents($this->logDirectory . $fileName, $output, FILE_APPEND);
+    }
+
+    /**
+     * @param string $type
+     * @throws Exception
+     */
     public function setOutputType($type)
     {
         if (!in_array($type, ['json', 'object', 'array'])) {
@@ -298,8 +376,9 @@ class Aanbieders
     }
 
     /**
-     * Getting real ip of requester
-     * @return string $ip
+     * Get IP of request
+     *
+     * @return string|null $ip
      */
     public static function getIp()
     {
@@ -313,5 +392,36 @@ class Aanbieders
         }
 
         return $ip;
+    }
+
+    /**
+     * Rotate log file if it exceeds 10MB
+     * Keeps 10 log files
+     *
+     * @param string $filename
+     * @return bool|null
+     */
+    protected function rotateLogFile($filename)
+    {
+        $filePath = $this->logDirectory . $filename;
+        clearstatcache(true, $filePath);
+
+        if (!file_exists($filePath) || filesize($filePath) < 10485760) {
+            return null;
+        }
+
+        $maxFiles = 10;
+        $result   = rename($filePath, $filePath . '.' . time());
+
+        $files = glob($filePath . '.*');
+        if ($files) {
+            $filesToDelete = count($files) - $maxFiles;
+            while ($filesToDelete > 0) {
+                unlink(array_shift($files));
+                $filesToDelete--;
+            }
+        }
+
+        return $result;
     }
 }
