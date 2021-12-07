@@ -110,13 +110,13 @@ class Aanbieders
     }
 
     /**
-     * Get previous comparison result by comparison ID
+     * Get comparison by ID
      *
-     * @params int $comparisonId id to fetch previous compare result
+     * @params int $comparisonId
      * @params array $params
      * @return mixed
      */
-    public function previousCompare($comparisonId, $params = [])
+    public function getComparison($comparisonId, $params = [])
     {
         $url = $this->host . "/comparison/" . $comparisonId . ".json";
 
