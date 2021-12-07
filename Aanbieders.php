@@ -3,28 +3,24 @@
 Plugin Name: Aanbieders Api Client
 Plugin URI: https://github.com/econtract/ApiClient
 Description: Aanbieders API Client Plugin for Wordpress.
-Version: 1.0.2
+Version: 1.1.8
 Author: Imran Zahoor
 Author URI: http://imranzahoor.wordpress.com/
 License: A "Slug" license name e.g. GPL2
 */
 
 namespace AnbApiClient;
-/*
+
+use Cake\Core\Configure;
+use Exception;
+
+/**
  * Aanbieders API Class
  * This class is a wrapper for making a curl based request to the api of aanbieders.be
  *
  * Contact for support:
  * Aanbieders API Support <api_support@aanbieders.be>
  */
-
-if (!function_exists('curl_init')) {
-    throw new \Exception('Aanbieders.be Client Library requires the CURL PHP extension.');
-}
-if (!function_exists('json_decode')) {
-    throw new \Exception('Aanbieders.be Client Library requires the JSON PHP extension.');
-}
-
 class Aanbieders
 {
     /*
@@ -32,500 +28,400 @@ class Aanbieders
      *
      * api_support@econtract.be
      */
+    /** @var string */
+    private $key;
 
-    private $key, $secret;
+    /** @var string */
+    private $secret;
+
+    /** @var string */
     private $host;
-    /*
-     * valid options: json, object, array
-     */
-    public $outputtype = 'json';
+
+    /** @var string */
+    private $outputType = 'json';
 
     /**
-     * Constructor : Initializes the instance
+     * @var string
+     */
+    private $language;
+
+    /**
+     * @var string
+     */
+    private $abcid;
+
+    /**
+     * @var bool
+     */
+    private $log;
+
+    /**
+     * @var string
+     */
+    private $logDirectory;
+
+    /**
+     * Constructor: Initializes the instance
      *
      * @param array $config API configuration
+     * @throws Exception
      */
     public function __construct($config)
     {
-
-        // check $key, $secret and $hashmethod
-        if (!$config['key']) {
-            throw new \Exception('Invalid key');
+        if (empty($config['key'])) {
+            throw new Exception('Invalid key');
         }
 
-
-        if (!$config['secret']) {
-            throw new \Exception('Invalid secret');
+        if (empty($config['secret'])) {
+            throw new Exception('Invalid secret');
         }
 
-        $this->key = $config['key'];
-        $this->secret = $config['secret'];
-        $this->host = $config['host'];
+        $this->key      = $config['key'];
+        $this->secret   = $config['secret'];
+        $this->host     = isset($config['host']) ? $config['host'] : 'https://api.econtract.be';
+        $this->language = isset($config['language']) ? $config['language'] : 'nl';
+        $this->abcid    = uniqid();
+        $this->log      = isset($config['log']) ? $config['log'] : (defined('ANB_API_LOG') && ANB_API_LOG);
 
-        if(empty($this->host)) {
-            if ($config['staging']) {
-                $this->host = 'https://eco-api.aanbieders.staging-001.econtract.prvw.eu';
-            } else {
-                $this->host = 'https://api.econtract.be';
-            }
+        if (isset($config['logDirectory'])) {
+            $this->logDirectory = $config['logDirectory'];
+        } elseif (defined('AB_API_LOG_DIR')) {
+            $this->logDirectory = AB_API_LOG_DIR;
+        } elseif (defined('WP_CONTENT_DIR')) {
+            $this->logDirectory = WP_CONTENT_DIR . '/logs/';
         }
 
-        //check for/create a unique id for tracking purposes
-        $this->abcid = uniqid();
+        if ($this->log && $this->logDirectory !== null && !is_dir($this->logDirectory)) {
+            mkdir($this->logDirectory, 0775, true);
+        }
     }
 
     /**
-     * gets default usages for elec and/or gas
+     * Compare products
      *
-     * @param    array $params the required params to make a comparing
-     * @return array Array with usage results
-     */
-    public function usages($params)
-    {
-
-        $url = $this->host . "/usages.json";
-        return $this->doCall($url, $params, 'GET');
-    }
-
-    /**
-     * Compares products based on parameters
-     *
-     * @param    array $params the required params to make a comparing
-     * @return array Array with comparing results
+     * @param array $params the required params to make a comparing
+     * @return mixed
      */
     public function compare($params)
     {
-
         $url = $this->host . "/comparison.json";
 
-        return $this->doCall($url, $params, 'GET');
+        return $this->doCall($url, $params);
     }
 
     /**
-     * Get previous search on the basis of comparison id
-     * @params array optional
-     * @return json containing search results
-     * @compareId comaprison id to fetch previous compare result
-     */
-    public function previousCompare($compareId, $params = [])
-    {
-
-        $url = $this->host . "/comparison/".$compareId.".json";
-
-        return $this->doCall($url, $params, 'GET');
-    }
-
-	/**
-	 * Get last updated product DateTime
-	 * @param $params
-	 *
-	 * @return array
-	 */
-	public function getProductsLastUpdated($params)
-	{
-		$url = $this->host . '/products/last_updated.json';
-
-		return $this->doCall($url, $params, 'GET');
-
-	}
-
-	/**
-	 * Get supplier details
-	 * @param $params
-	 *
-	 * @return array
-	 */
-	public function getSupplierDetail($supplierId, $params = [])
-	{
-		if(!isset($params['lang'])) {
-			$params['lang'] = 'nl';
-		}
-		$url = $this->host . '/suppliers/'.$supplierId.'.json';
-
-		return $this->doCall($url, $params, 'GET');
-
-	}
-
-    /**
-     *  Get a list of 1 or more products and related information
+     * Get comparison by ID
      *
-     * @param array $params Array of parameters
-     * @param array $productid Array of 1 or more product id's
+     * @params int $comparisonId
+     * @params array $params
+     * @return mixed
+     */
+    public function getComparison($comparisonId, $params = [])
+    {
+        $url = $this->host . "/comparison/" . $comparisonId . ".json";
+
+        return $this->doCall($url, $params);
+    }
+
+    /**
+     * Get suppliers
      *
-     */
-    public function getProducts($params, $productid = array())
-    {
-
-        $url = $this->host . "/products.json";
-        // analyze product id's and build the url and query parameters
-        if ($productid && is_array($productid) && ($number_of_product_ids = count($productid)) > 0) {
-            if ($number_of_product_ids == 1) {
-                $url = $this->host . "/products/" . $productid[0] . ".json";
-            } else {
-                $params['productid'] = implode(' ', $productid);
-            }
-        } else if ($productid && is_numeric($productid)) {
-            $url = $this->host . "/products/" . $productid . ".json";
-        }
-
-        return $this->doCall($url, $params, 'GET');
-    }
-
-    /**
-     * Placing order on Aanbieders.be system
-     * @param array $params array with data for order
-     * @return object:
-     */
-    public function setOrder($params)
-    {
-        $url = $this->host . "/orders.json";
-
-        $options = $params['opt'];
-        if (count($params['opt']) > 1) {
-            foreach ($options as $option) {
-                $params['opt[' . $option . ']'] = $option;
-            }
-        } else {
-            $params['opt[]'] = $params['opt'][0];
-        }
-        unset($params['opt']);
-
-        return $this->doCall($url, $params, 'GET');
-    }
-
-    /**
-     * Get list of suppliers based on given parameters
      * @param array $params array with parameters for suppliers
-     * @return object:
+     * @return mixed
      */
-    public function getSuppliers($params)
+    public function getSuppliers($params = [])
     {
-
         $url = $this->host . '/suppliers.json';
 
-        return $this->doCall($url, $params, 'GET');
-
+        return $this->doCall($url, $params);
     }
 
     /**
-     * Generate a contract for your order
-     * @param array $params array with all parameters you receive from the order API
-     * @return object
+     * Get a supplier by slug or ID
+     *
+     * @param int|string $slugOrId
+     * @param array      $params
+     * @return mixed
      */
-    public function getContract($params)
+    public function getSupplier($slugOrId, $params = [])
     {
+        $url = $this->host . '/suppliers/' . $slugOrId . '.json';
 
-        if (!is_array($params)) {
-            //transform object into array recursively with json_ functions
-            $params = json_decode(json_encode($params), true);
+        return $this->doCall($url, $params);
+    }
+
+    /**
+     * Get 1 or more products
+     *
+     * @param array     $params     Array of parameters
+     * @param int|array $productIds 1 product ID/slug or array of product IDs/slugs
+     * @return mixed
+     */
+    public function getProducts($params, $productIds = [])
+    {
+        $productIds = (array)$productIds;
+        if (count($productIds) === 1) {
+            return $this->getProduct($productIds[0], $params);
         }
 
+        $url = $this->host . "/products.json";
+        if (!empty($productIds)) {
+            $params['productid'] = $productIds;
+        }
 
-        $url = $this->host . '/orders/generate.json';
-
-        return $this->doCall($url, $params, 'POST');
-
+        return $this->doCall($url, $params);
     }
 
     /**
-     * Get list of reviews based on given parameters
-     * @param array $params array with parameters for reviews
-     * @return object:
+     * Get a product by slug or ID
+     *
+     * @param int|string $slugOrId
+     * @param array      $params
+     * @return mixed
      */
-    public function getReviews($params)
+    public function getProduct($slugOrId, $params = [])
     {
+        $url = $this->host . "/products/" . $slugOrId . ".json";
 
+        return $this->doCall($url, $params);
+    }
+
+    /**
+     * Get last updated time
+     *
+     * @param array $params
+     * @return mixed
+     */
+    public function getProductsLastUpdated($params = [])
+    {
+        $url = $this->host . '/products/last_updated.json';
+
+        return $this->doCall($url, $params);
+    }
+
+    /**
+     * Check availability for a product by postal code
+     *
+     * @param int        $productId
+     * @param string|int $postalCode
+     * @param array      $params
+     * @return mixed
+     */
+    public function getProductAvailability($productId, $postalCode, $params = [])
+    {
+        $params['zip'] = $postalCode;
+
+        $url = $this->host . '/products/is_available_at/' . $productId . '.json';
+
+        return $this->doCall($url, $params);
+    }
+
+    /**
+     * Get price breakdown structure for a product
+     *
+     * @param int   $productId
+     * @param array $params
+     * @return mixed
+     */
+    public function getProductPbs($productId, $params = [])
+    {
+        $url = $this->host . '/products/pbs/' . $productId . '.json';
+
+        return $this->doCall($url, $params);
+    }
+
+    /**
+     * Get reviews
+     *
+     * @param array $params array with parameters for reviews
+     * @return mixed
+     */
+    public function getReviews($params = [])
+    {
         $url = $this->host . '/reviews.json';
 
-        return $this->doCall($url, $params, 'GET');
-
+        return $this->doCall($url, $params);
     }
 
     /**
-     * Magic get function to get the properties
-     * @throws \Exception ifthe property you try to get is not defined
+     * Get sales agents
+     *
+     * @param array $params
+     * @return mixed
      */
-    public function _get($property)
+    public function getSalesAgents($params = [])
     {
+        $url = $this->host . '/sales_agent.json';
 
-        switch ($property) {
-            case 'key' :
-                return $this->key;
-                break;
-            case 'secret' :
-                return $this->secret;
-                break;
-            case 'apikey' :
-                return $this->apikey;
-                break;
-            default :
-                throw new \Exception('Invalid property');
-                break;
-        }
-    }
-
-    /**
-     * Magic set function to set the properties
-     * @throws \Exception if the property you try to set is not defined.
-     */
-    public function _set($property, $value)
-    {
-
-        switch ($property) {
-            case 'key' :
-                $this->key = $value;
-                break;
-            case 'secret' :
-                $this->secret = $value;
-                break;
-            case 'apikey' :
-                $this->apikey = $value;
-                break;
-            default :
-                throw new \Exception('Invalid property');
-                break;
-        }
+        return $this->doCall($url, $params);
     }
 
     /**
      * Do a call to given url with parameters
      *
-     * @param string $url Url of the resource
-     * @param array $parameters Required and optional parameters for the resource
-     * @param string $method The HTTP-method, default is POST
+     * @param string $url        Url of the resource
+     * @param array  $parameters Required and optional parameters for the resource
+     * @param string $method     The HTTP-method, default is POST
      * @return mixed with request response
      */
-    private function doCall($url, $parameters = array(), $method = 'POST')
+    protected function doCall($url, $parameters = [], $method = 'GET')
     {
+        $parameters += [
+            'lang' => $this->language,
+        ];
 
-        $parameters['key'] = $this->key;
+        $parameters['key']  = $this->key;
         $parameters['time'] = time();
-        // create a nonce
 
-        $nonce = md5(uniqid());
-        $parameters['nonce'] = $nonce;
+        // create a nonce
+        $parameters['nonce'] = md5(uniqid());
 
         // create the api key
-        $parameters['ip'] = $this->getIp();
+        $parameters['ip']     = static::getIp();
         $parameters['apikey'] = hash_hmac('sha1', $this->key, $this->secret . $parameters['time'] . $parameters['nonce']);
 
         // add the unique id
         $parameters['abcid'] = $this->abcid;
 
+        $requestParams = http_build_query($parameters);
+
         // curl handler
-        $curl_handle = curl_init();
+        $curlHandle = curl_init();
 
         // set curl options
         // return the result so we can catch it as a variable
-        curl_setopt($curl_handle, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curlHandle, CURLOPT_RETURNTRANSFER, true);
 
-        if ($method == 'POST') {
-            // do a POST call
-            // generate parameters
-            $post_params = '';
-            foreach ($parameters as $key => $value) {
-                if (is_array($value)) {
-                    foreach ($value as $k => $k_val) {
-                        $post_params .= $key . '[' . $k . ']=' . $k_val . '&';
-                    }
-                } else {
-                    $post_params .= $key . '=' . $value . '&';
-                }
-            }
-
-            rtrim($post_params, '&');
-            curl_setopt($curl_handle, CURLOPT_POST, count($parameters));
-            curl_setopt($curl_handle, CURLOPT_POSTFIELDS, $post_params);
-            curl_setopt($curl_handle, CURLOPT_URL, $url);
-        } else if ($method == 'GET') {
-            // do a GET call
-            curl_setopt($curl_handle, CURLOPT_HTTPGET, true);
-
+        if (strtolower($method) === 'POST') {
+            curl_setopt($curlHandle, CURLOPT_POST, true);
+            curl_setopt($curlHandle, CURLOPT_POSTFIELDS, $requestParams);
+        } else {
             // do the request
-            $query = http_build_query($parameters, '', '&');
-
-            curl_setopt($curl_handle, CURLOPT_URL, $url . '?' . $query);
+            $url = $url . '?' . $requestParams;
         }
 
         // do request
-        $response = curl_exec($curl_handle);
+        curl_setopt($curlHandle, CURLOPT_URL, $url);
+
+        $response = curl_exec($curlHandle);
+
+        if ($this->log) {
+            $this->logRequest($url, $method, $parameters, $response);
+        }
+
         // close
-        curl_close($curl_handle);
-        switch ($this->outputtype) {
+        curl_close($curlHandle);
+        switch ($this->outputType) {
             default:
             case 'json':
                 return $response;
-                break;
             case 'object':
                 return json_decode($response);
-                break;
             case 'array':
-                return $this->object_to_array(json_decode($response));
-                break;
+                return json_decode($response, true);
         }
-        return json_decode($response);
     }
 
+    /**
+     * @param string       $requestUrl
+     * @param string       $requestType
+     * @param array        $requestData
+     * @param string|false $response
+     */
+    protected function logRequest($requestUrl, $requestType, $requestData, $response)
+    {
+        if ($requestType !== 'GET' && !empty($requestData)) {
+            $message = vsprintf("API call (%s) %s\nRequest body:\n%s\nResponse body:\n %s\n\n", [
+                $requestType,
+                $requestUrl,
+                json_encode($requestData, JSON_PRETTY_PRINT) . "\n",
+                is_string($response) ? json_encode(json_decode($response, true), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) : '',
+            ]);
+        } else {
+            $message = vsprintf("API call (%s) %s\nResponse body:\n %s\n\n", [
+                $requestType,
+                $requestUrl,
+                is_string($response) ? json_encode(json_decode($response, true), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) : '',
+            ]);
+        }
+
+        $this->log($message);
+    }
+
+    /**
+     * @param string $message
+     * @return false|int
+     */
+    protected function log($message)
+    {
+        $fileName = 'anb-api-calls.log';
+        $this->rotateLogFile($fileName);
+
+        $output = sprintf('[%s] %s', date('Y-m-d H:i:s'), $message);
+
+        return file_put_contents($this->logDirectory . $fileName, $output, FILE_APPEND);
+    }
+
+    /**
+     * @param string $type
+     * @throws Exception
+     */
     public function setOutputType($type)
     {
-        if (!in_array($type, array('json', 'object', 'array'))) {
-            throw new \Exception('Invalid outputtype');
+        if (!in_array($type, ['json', 'object', 'array'])) {
+            throw new Exception('Invalid output type');
         } else {
-            $this->outputtype = $type;
+            $this->outputType = $type;
         }
     }
 
     /**
-     * converting an object to an array
-     * @param object $obj
-     * @return array
+     * Get IP of request
      *
+     * @return string|null $ip
      */
-    function object_to_array($obj)
+    public static function getIp()
     {
-
-
-        $arr = array();
-
-
-        $arrObj = is_object($obj) ? get_object_vars($obj) : $obj;
-        foreach ($arrObj as $key => $val) {
-            $val = (is_array($val) || is_object($val)) ? $this->object_to_array($val) : $val;
-            $arr[$key] = $val;
-        }
-        return $arr;
-    }
-
-    /**
-     * Getting real ip of requester
-     * @return string $ip
-     */
-    private function getIp()
-    {
+        $ip = null;
         if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
             $ip = $_SERVER['HTTP_CLIENT_IP'];
         } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
             $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
-        } else {
+        } elseif (!empty($_SERVER['REMOTE_ADDR'])) {
             $ip = $_SERVER['REMOTE_ADDR'];
         }
 
         return $ip;
     }
 
-    function getDnb($zip, $language)
-    {
-
-        $params['zip'] = $zip;
-        $params['lang'] = $language;
-
-        $url = $this->host . '/dnb.json';
-
-        return $this->doCall($url, $params, 'GET');
-    }
-
-    function multi_implode($glue, $array)
-    {
-        $ret = '';
-
-        foreach ($array as $item) {
-            if (is_array($item)) {
-                $ret .= $this->multi_implode($glue, $item) . $glue;
-            } else {
-                $ret .= $item . $glue;
-            }
-        }
-
-        $ret = substr($ret, 0, 0 - strlen($glue));
-
-        return $ret;
-    }
-
     /**
+     * Rotate log file if it exceeds 10MB
+     * Keeps 10 log files
      *
-     * @return boolean
+     * @param string $filename
+     * @return bool|null
      */
-    function validate_ean($value)
+    protected function rotateLogFile($filename)
     {
-        if (strlen($value) != 18)
-            return false;
+        $filePath = $this->logDirectory . $filename;
+        clearstatcache(true, $filePath);
 
-        $check = false;
-        for ($i = 1; $i <= 17; $i++) {
-            $check = ($check + (1 + 2 * ($i % 2)) * intval(substr($value, $i - 1, 1))) % 10;
+        if (!file_exists($filePath) || filesize($filePath) < 10485760) {
+            return null;
         }
 
-        $check = (10 - $check) % 10;
-        return (intval($check) == intval(substr($value, 17, 1)));
-    }
+        $maxFiles = 10;
+        $result   = rename($filePath, $filePath . '.' . time());
 
-    function getSalesAgent( $params = array() ){
-        $url = $this->host . '/sales_agent.json';
-        return $this->doCall($url, $params, 'GET');
-    }
-
-    function checkAvailabilityRPC($params = array()){
-        $url = $this->host . '/products/is_available_at/'.$params['pid'].'.json';
-        return $this->doCall($url, $params, 'GET');
-    }
-
-    function telecomPbsRpcCall($params = array()){
-        $url = $this->host . '/products/pbs/'.$params['pid'].'.json';
-        unset($params['pid']);
-        return $this->doCall($url, $params, 'GET');
-    }
-
-    function getUsageResults($params = array()){
-        $url = CRM_API_HOST . "/api/usages";
-        return $this->doCallCRMAPI($url, $params, 'GET');
-    }
-
-    private function doCallCRMAPI($url, $parameters = array(), $method = 'POST'){
-        $parameters['crm_api_id'] = CRM_API_ID;
-        $parameters['crm_api_key'] = CRM_API_KEY;
-        $curl_handle = curl_init();
-        curl_setopt($curl_handle, CURLOPT_RETURNTRANSFER, true);
-
-        if ($method == 'POST') {
-            $post_params = '';
-            foreach ($parameters as $key => $value) {
-                if (is_array($value)) {
-                    foreach ($value as $k => $k_val) {
-                        $post_params .= $key . '[' . $k . ']=' . $k_val . '&';
-                    }
-                } else {
-                    $post_params .= $key . '=' . $value . '&';
-                }
+        $files = glob($filePath . '.*');
+        if ($files) {
+            $filesToDelete = count($files) - $maxFiles;
+            while ($filesToDelete > 0) {
+                unlink(array_shift($files));
+                $filesToDelete--;
             }
-
-            rtrim($post_params, '&');
-            curl_setopt($curl_handle, CURLOPT_POST, count($parameters));
-            curl_setopt($curl_handle, CURLOPT_POSTFIELDS, $post_params);
-            curl_setopt($curl_handle, CURLOPT_URL, $url);
-        } else if ($method == 'GET') {
-            // do a GET call
-            curl_setopt($curl_handle, CURLOPT_HTTPGET, true);
-            // do the request
-            $query = http_build_query($parameters, '', '&');
-
-            curl_setopt($curl_handle, CURLOPT_URL, $url . '?' . $query);
         }
-        // do request
-        $response = curl_exec($curl_handle);
-        // close
-        curl_close($curl_handle);
-        switch ($this->outputtype) {
-            default:
-            case 'json':
-                return $response;
-                break;
-            case 'object':
-                return json_decode($response);
-                break;
-            case 'array':
-                return $this->object_to_array(json_decode($response));
-                break;
-        }
-        return json_decode($response);
+
+        return $result;
     }
 }
