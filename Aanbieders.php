@@ -97,6 +97,36 @@ class Aanbieders
     }
 
     /**
+     * @param string $language
+     * @return $this
+     */
+    public function setLanguage($language)
+    {
+        $this->language = $language;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getLanguage()
+    {
+        return $this->language;
+    }
+
+    /**
+     * @param bool $enable
+     * @return $this
+     */
+    public function enableLogging($enable = true)
+    {
+        $this->log = $enable;
+
+        return $this;
+    }
+
+    /**
      * Compare products
      *
      * @param array $params the required params to make a comparing
@@ -181,7 +211,7 @@ class Aanbieders
      */
     public function getProduct($slugOrId, $params = [])
     {
-        $url = $this->host . "/products/" . $slugOrId . ".json";
+        $url = $this->host . "/products/view/" . $slugOrId . ".json";
 
         return $this->doCall($url, $params);
     }
